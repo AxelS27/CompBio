@@ -72,6 +72,11 @@ doc.add_paragraph(
     f"(AUC {best['AUC']:.3f} +/- {best['AUC_std']:.3f}, "
     f"Accuracy {best['Accuracy']:.3f}, F1 {best['F1']:.3f}, MCC {best['MCC']:.3f})."
 )
+doc.add_paragraph(
+    "The comparative evaluation emphasizes AUC-ROC because it measures how well the model separates "
+    "tumor from non-tumor samples across decision thresholds. Accuracy, macro-F1, sensitivity, and MCC "
+    "are reported as supporting metrics so that the result is not judged from a single score only."
+)
 
 tbl = doc.add_table(rows=1, cols=7)
 tbl.style = "Table Grid"
@@ -92,6 +97,26 @@ for _, row in results.sort_values(["AUC", "MCC"], ascending=False).head(10).iter
     ]
     for cell, value in zip(cells, values):
         cell.text = str(value)
+
+fig2_path = FIG_DIR / "fig2_cv_auc_heatmap.png"
+if fig2_path.exists():
+    doc.add_heading("Figure 2: Comparative Model Evaluation", level=2)
+    doc.add_picture(str(fig2_path), width=Inches(6.4))
+    doc.add_paragraph(
+        "Figure 2 summarizes the primary model-comparison experiment. Each cell represents the mean "
+        "patient-level cross-validation AUC for one combination of feature-selection pipeline and classifier. "
+        "This figure is important because it shows that the result is not driven by a single arbitrary model: "
+        "multiple classifiers and feature-selection strategies produce similarly high discrimination, especially "
+        "for SVM-RFE and Random Forest feature-selection pipelines. In practical terms, this suggests that the "
+        "tumor-versus-non-tumor signal is strong and consistently recoverable from the expression matrix."
+    )
+    doc.add_paragraph(
+        "The heatmap should not be interpreted as proof that every model is perfect. Instead, it supports the "
+        "comparative conclusion that several pipelines are capable of separating the two classes under the "
+        "corrected validation protocol. The key methodological detail is that DEG prefiltering, feature selection, "
+        "scaling, and SMOTE are all performed inside the training fold. Therefore, the validation fold is used only "
+        "for scoring and does not influence which probes are selected."
+    )
 
 if best_ext is not None:
     doc.add_heading("External Validation", level=1)
@@ -211,6 +236,43 @@ for ref in refs:
     cells = tbl_ref.add_row().cells
     for cell, value in zip(cells, ref):
         cell.text = value
+
+doc.add_heading("Overfitting and Underfitting Diagnosis", level=1)
+fig5_path = FIG_DIR / "fig5_overfitting_diagnostic.png"
+if fig5_path.exists():
+    doc.add_picture(str(fig5_path), width=Inches(6.4))
+doc.add_paragraph(
+    "The learning-curve diagnostic indicates that the model is not underfitting. Underfitting would appear as "
+    "low training AUC and low validation AUC, meaning that the model is too simple or that the selected features "
+    "do not contain enough information to distinguish tumor from non-tumor samples. In this project, both curves "
+    "are high across the training-size range, so the model is clearly able to learn the relevant expression pattern."
+)
+doc.add_paragraph(
+    "The same diagnostic also does not show the typical pattern of overfitting. Overfitting would appear as a "
+    "large separation between the training curve and the validation curve: training AUC would remain very high, "
+    "while validation AUC would drop because the model had memorized training-specific noise. In the generated "
+    "learning curve, the training and validation lines overlap, and the final train-validation gap is approximately "
+    "zero. This means that the model's performance on held-out patient groups is similar to its performance on "
+    "the training groups."
+)
+doc.add_paragraph(
+    "The reason the model can perform very well without necessarily being overfit is biological and methodological. "
+    "Biologically, tumor and adjacent non-tumor tissue often differ strongly in gene-expression programs related to "
+    "cell proliferation, immune activity, metabolism, extracellular matrix remodeling, and tissue organization. "
+    "Microarray data can capture these broad transcriptomic shifts, so a classifier does not need to rely on a weak "
+    "or subtle signal. Methodologically, the pipeline reduces the high-dimensional expression matrix to informative "
+    "features through training-only DEG prefiltering and SVM-RFE/LASSO/RF feature selection, then evaluates the model "
+    "with patient-level grouping so paired samples from the same patient do not leak across train and validation folds."
+)
+doc.add_paragraph(
+    "However, the result should still be reported carefully. A very high internal AUC should be described as strong "
+    "internal discrimination, not as universal perfection. The strongest safeguard is the external validation experiment: "
+    "when the model is trained on GSE76297 and tested on the independent GSE26566 cohort across a different platform, "
+    "the best external AUC remains high but lower than the internal CV result. That drop is expected and healthy because "
+    "external validation includes cohort, platform, and preprocessing differences. Therefore, the most balanced conclusion "
+    "is that the model is well-fitted on the primary cohort, shows no clear underfitting or overfitting in the nested "
+    "learning curve, and retains meaningful generalization in external validation."
+)
 
 doc.add_heading("Interpretation Note", level=1)
 doc.add_paragraph(
