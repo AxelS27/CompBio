@@ -54,6 +54,26 @@ doc.add_paragraph(
     f"{len(degs)} significant probes for downstream biological interpretation."
 )
 
+fig1_path = FIG_DIR / "fig1_preprocessing_qc.png"
+if fig1_path.exists():
+    doc.add_heading("Figure 1: Preprocessing Quality Control", level=2)
+    doc.add_picture(str(fig1_path), width=Inches(6.4))
+    doc.add_paragraph(
+        "Figure 1 evaluates whether the processed expression matrix is suitable for downstream classification. "
+        "The left panel summarizes the normalized expression distribution by class, while the right panel shows "
+        "PCA projection of all samples after preprocessing. This figure is important because model performance "
+        "can be misleading if the input data are poorly normalized, dominated by technical artifacts, or contain "
+        "obvious sample-level irregularities."
+    )
+    doc.add_paragraph(
+        "The PCA visualization also gives an early biological sanity check. If tumor and non-tumor samples show "
+        "separation in the reduced-dimensional space, it suggests that the expression matrix contains broad "
+        "class-related transcriptomic differences before any supervised classifier is trained. This does not prove "
+        "classification performance by itself, but it supports the expectation that tumor-versus-non-tumor status "
+        "is learnable from the expression data. Because preprocessing includes log-scale checking, IQR filtering, "
+        "and quantile normalization, the downstream classifiers operate on a cleaner and more comparable feature matrix."
+    )
+
 doc.add_heading("Corrected Validation Design", level=1)
 items = [
     "Patient-level grouping keeps paired tumor/non-tumor samples from the same patient in the same fold.",
@@ -141,6 +161,26 @@ if best_ext is not None:
         ):
             cell.text = str(value)
 
+    fig3_path = FIG_DIR / "fig3_external_validation.png"
+    if fig3_path.exists():
+        doc.add_heading("Figure 3: External Validation Performance", level=2)
+        doc.add_picture(str(fig3_path), width=Inches(6.4))
+        doc.add_paragraph(
+            "Figure 3 shows the external validation AUC for each classifier when the model is trained on GSE76297 "
+            "and tested on GSE26566. This is one of the most important figures because it evaluates generalization "
+            "across an independent cohort and a different microarray platform. Internal cross-validation can show "
+            "how well the model performs within the primary dataset, but external validation tests whether the learned "
+            "signal remains useful when sample composition, laboratory conditions, and platform-specific probe design differ."
+        )
+        doc.add_paragraph(
+            "The external AUC values are lower than the internal cross-validation AUC values, which is expected and "
+            "methodologically healthy. A small-to-moderate performance drop across cohorts usually indicates that the "
+            "external test is more difficult, not necessarily that the model failed. In this project, Logistic Regression "
+            "achieves the strongest external validation performance, with an AUC around 0.927. This supports the claim "
+            "that the model captures a biologically meaningful CCA expression signal rather than merely memorizing the "
+            "primary dataset. The external validation result is therefore the main argument for real-world robustness."
+        )
+
 doc.add_heading("Candidate Biomarkers", level=1)
 doc.add_paragraph(
     "Candidate biomarkers are ranked from the final full-cohort SVM-RFE + Logistic Regression model. "
@@ -170,6 +210,24 @@ outputs = [
 for name, desc in outputs:
     exists = "available" if (RES_DIR / name).exists() or (FIG_DIR / name).exists() else "missing"
     doc.add_paragraph(f"{name}: {desc} ({exists}).", style="List Bullet")
+
+doc.add_heading("Figure 4: ROC Curve Evaluation", level=2)
+fig4_path = FIG_DIR / "fig4_roc_svmrfe.png"
+if fig4_path.exists():
+    doc.add_picture(str(fig4_path), width=Inches(6.4))
+doc.add_paragraph(
+    "Figure 4 presents ROC curves for the classifiers under the SVM-RFE feature-selection pipeline. The ROC curve "
+    "plots sensitivity against the false-positive rate across decision thresholds, so it is more informative than "
+    "a single fixed-threshold accuracy value. A curve closer to the top-left corner indicates stronger discrimination, "
+    "and the AUC summarizes that discrimination into one threshold-independent metric."
+)
+doc.add_paragraph(
+    "This figure complements the heatmap in Figure 2. The heatmap compares AUC values across all model-feature-selection "
+    "combinations, while the ROC plot shows the detailed threshold behavior of the selected pipeline. Strong ROC curves "
+    "suggest that the classifier can rank tumor samples above non-tumor samples consistently rather than relying on one "
+    "lucky classification threshold. For biomedical classification, this is useful because the decision threshold can be "
+    "adjusted depending on whether sensitivity or specificity is prioritized."
+)
 
 doc.add_heading("Verified Supporting Literature", level=1)
 doc.add_paragraph(
